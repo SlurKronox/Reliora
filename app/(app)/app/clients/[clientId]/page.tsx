@@ -119,9 +119,11 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Relatórios</CardTitle>
-          <Button disabled className="bg-[#14B8A6] hover:bg-[#14B8A6]/90" size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Gerar relatório
+          <Button asChild className="bg-[#14B8A6] hover:bg-[#14B8A6]/90" size="sm">
+            <Link href={`/app/clients/${client.id}/reports/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              Gerar relatório
+            </Link>
           </Button>
         </CardHeader>
         <CardContent>
@@ -131,14 +133,17 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                 <FileText className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-[#0F172A]">
-                Nenhum relatório ainda.
+                Nenhum relatório ainda
               </h3>
               <p className="mb-6 max-w-sm text-sm text-gray-600">
-                Em breve: geração de relatórios com dados e IA.
+                Gere seu primeiro relatório de marketing com análise automática por IA
               </p>
-              <Badge variant="secondary" className="text-xs">
-                Funcionalidade em desenvolvimento
-              </Badge>
+              <Button asChild className="bg-[#14B8A6] hover:bg-[#14B8A6]/90">
+                <Link href={`/app/clients/${client.id}/reports/new`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Gerar primeiro relatório
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -156,8 +161,10 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                       Criado em {format(new Date(report.createdAt), 'dd/MM/yyyy')}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" disabled>
-                    Ver relatório
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/app/reports/${report.id}`}>
+                      Ver relatório
+                    </Link>
                   </Button>
                 </div>
               ))}

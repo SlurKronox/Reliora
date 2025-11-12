@@ -178,6 +178,26 @@ export const prisma = {
 
       const { count } = await query
       return count || 0
+    },
+    create: async (args: any) => {
+      const { data } = await getSupabase()
+        .from('Report')
+        .insert(args.data)
+        .select()
+        .single()
+      return data
+    },
+    findFirst: async (args: any) => {
+      let query = getSupabase().from('Report').select('*')
+
+      if (args.where) {
+        Object.entries(args.where).forEach(([key, value]) => {
+          query = query.eq(key, value as any)
+        })
+      }
+
+      const { data } = await query.maybeSingle()
+      return data
     }
   },
   waitlistEmail: {
