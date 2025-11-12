@@ -1,10 +1,14 @@
-import { getServerSession } from 'next-auth'
+import { getServerSession as nextAuthGetServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import { prisma } from './db'
 import { redirect } from 'next/navigation'
 
+export async function getServerSession() {
+  return nextAuthGetServerSession(authOptions)
+}
+
 export async function getCurrentUser() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
 
   if (!session?.user?.id) {
     return null

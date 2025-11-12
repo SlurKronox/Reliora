@@ -1,15 +1,19 @@
 // @ts-nocheck
-import { createClient } from '@supabase/supabase-js'
+import { createClient as supabaseCreateClient } from '@supabase/supabase-js'
 
-let supabaseInstance: ReturnType<typeof createClient> | null = null
+let supabaseInstance: ReturnType<typeof supabaseCreateClient> | null = null
 
 function getSupabase() {
   if (!supabaseInstance) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    supabaseInstance = createClient(supabaseUrl, supabaseKey)
+    supabaseInstance = supabaseCreateClient(supabaseUrl, supabaseKey)
   }
   return supabaseInstance
+}
+
+export function createClient() {
+  return getSupabase()
 }
 
 export const supabase = {
@@ -288,7 +292,7 @@ export const prisma = {
       return data
     },
     create: async (args: any) => {
-      const { data } = await getSupabase()
+      const { data} = await getSupabase()
         .from('VerificationToken')
         .insert(args.data)
         .select()
