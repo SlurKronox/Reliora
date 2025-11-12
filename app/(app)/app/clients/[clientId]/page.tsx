@@ -142,7 +142,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             </div>
           ) : (
             <div className="space-y-4">
-              {client.reports.map((report) => (
+              {client.reports.map((report: any) => (
                 <div
                   key={report.id}
                   className="flex items-center justify-between rounded-lg border p-4"
