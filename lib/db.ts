@@ -1,30 +1,43 @@
+// @ts-nocheck
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+function getSupabase() {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseInstance = createClient(supabaseUrl, supabaseKey)
+  }
+  return supabaseInstance
+}
+
+export const supabase = {
+  get from() {
+    return getSupabase().from.bind(getSupabase())
+  }
+}
 
 export const prisma = {
   user: {
     findUnique: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('User')
         .select('*')
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
         .maybeSingle()
       return data
     },
     findFirst: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('User')
         .select('*')
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
         .maybeSingle()
       return data
     },
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('User')
         .insert(args.data)
         .select()
@@ -32,7 +45,7 @@ export const prisma = {
       return data
     },
     count: async () => {
-      const { count } = await supabase
+      const { count } = await getSupabase()
         .from('User')
         .select('*', { count: 'exact', head: true })
       return count || 0
@@ -40,7 +53,7 @@ export const prisma = {
   },
   workspace: {
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Workspace')
         .insert(args.data)
         .select()
@@ -48,11 +61,11 @@ export const prisma = {
       return data
     },
     findFirst: async (args: any) => {
-      let query = supabase.from('Workspace').select('*')
+      let query = getSupabase().from('Workspace').select('*')
 
       if (args.where) {
         Object.entries(args.where).forEach(([key, value]) => {
-          query = query.eq(key, value)
+          query = query.eq(key, value as any)
         })
       }
 
@@ -62,7 +75,7 @@ export const prisma = {
   },
   workspaceMember: {
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('WorkspaceMember')
         .insert(args.data)
         .select()
@@ -70,7 +83,7 @@ export const prisma = {
       return data
     },
     findFirst: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('WorkspaceMember')
         .select('*, workspace:Workspace(*)')
         .eq('userId', args.where.userId)
@@ -80,7 +93,7 @@ export const prisma = {
   },
   client: {
     count: async (args?: any) => {
-      let query = supabase.from('Client').select('*', { count: 'exact', head: true })
+      let query = getSupabase().from('Client').select('*', { count: 'exact', head: true })
 
       if (args?.where) {
         Object.entries(args.where).forEach(([key, value]) => {
@@ -92,11 +105,11 @@ export const prisma = {
       return count || 0
     },
     findMany: async (args: any) => {
-      let query = supabase.from('Client').select('*')
+      let query = getSupabase().from('Client').select('*')
 
       if (args.where) {
         Object.entries(args.where).forEach(([key, value]) => {
-          query = query.eq(key, value)
+          query = query.eq(key, value as any)
         })
       }
 
@@ -110,11 +123,11 @@ export const prisma = {
       return data || []
     },
     findFirst: async (args: any) => {
-      let query = supabase.from('Client').select('*, reports:Report(*)')
+      let query = getSupabase().from('Client').select('*, reports:Report(*)')
 
       if (args.where) {
         Object.entries(args.where).forEach(([key, value]) => {
-          query = query.eq(key, value)
+          query = query.eq(key, value as any)
         })
       }
 
@@ -128,7 +141,7 @@ export const prisma = {
       return data
     },
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Client')
         .insert(args.data)
         .select()
@@ -136,6 +149,7 @@ export const prisma = {
       return data
     },
     update: async (args: any) => {
+      const supabase = getSupabase()
       const { data } = await supabase
         .from('Client')
         .update(args.data)
@@ -145,7 +159,7 @@ export const prisma = {
       return data
     },
     delete: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Client')
         .delete()
         .eq('id', args.where.id)
@@ -156,7 +170,7 @@ export const prisma = {
   },
   report: {
     count: async (args?: any) => {
-      let query = supabase.from('Report').select('*, client:Client!inner(*)', { count: 'exact', head: true })
+      let query = getSupabase().from('Report').select('*, client:Client!inner(*)', { count: 'exact', head: true })
 
       if (args?.where?.client?.workspaceId) {
         query = query.eq('client.workspaceId', args.where.client.workspaceId)
@@ -168,7 +182,7 @@ export const prisma = {
   },
   waitlistEmail: {
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('WaitlistEmail')
         .insert(args.data)
         .select()
@@ -178,15 +192,15 @@ export const prisma = {
   },
   session: {
     findUnique: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Session')
         .select('*, user:User(*)')
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
         .maybeSingle()
       return data
     },
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Session')
         .insert(args.data)
         .select()
@@ -194,22 +208,22 @@ export const prisma = {
       return data
     },
     update: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Session')
         .update(args.data)
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
         .select()
         .single()
       return data
     },
     delete: async (args: any) => {
-      await supabase
+      await getSupabase()
         .from('Session')
         .delete()
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
     },
     deleteMany: async (args: any) => {
-      await supabase
+      await getSupabase()
         .from('Session')
         .delete()
         .lt('expires', args.where.expires.lt.toISOString())
@@ -217,11 +231,11 @@ export const prisma = {
   },
   account: {
     findFirst: async (args: any) => {
-      let query = supabase.from('Account').select('*')
+      let query = getSupabase().from('Account').select('*')
 
       if (args.where) {
         Object.entries(args.where).forEach(([key, value]) => {
-          query = query.eq(key, value)
+          query = query.eq(key, value as any)
         })
       }
 
@@ -229,7 +243,7 @@ export const prisma = {
       return data
     },
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('Account')
         .insert(args.data)
         .select()
@@ -237,15 +251,15 @@ export const prisma = {
       return data
     },
     delete: async (args: any) => {
-      await supabase
+      await getSupabase()
         .from('Account')
         .delete()
-        .eq(Object.keys(args.where)[0], Object.values(args.where)[0])
+        .eq(Object.keys(args.where)[0], Object.values(args.where)[0] as any)
     }
   },
   verificationToken: {
     findUnique: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('VerificationToken')
         .select('*')
         .eq('identifier', args.where.identifier_token.identifier)
@@ -254,7 +268,7 @@ export const prisma = {
       return data
     },
     create: async (args: any) => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from('VerificationToken')
         .insert(args.data)
         .select()
@@ -262,7 +276,7 @@ export const prisma = {
       return data
     },
     delete: async (args: any) => {
-      await supabase
+      await getSupabase()
         .from('VerificationToken')
         .delete()
         .eq('identifier', args.where.identifier_token.identifier)

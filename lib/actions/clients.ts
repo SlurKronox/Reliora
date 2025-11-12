@@ -44,7 +44,7 @@ export async function createClient(formData: FormData) {
         notes: result.data.notes || null,
         workspaceId: workspace.id,
       },
-    })
+    }) as any
 
     revalidatePath('/app/clients')
     redirect(`/app/clients/${client.id}`)

@@ -40,7 +40,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         },
       },
     },
-  })
+  }) as any
 
   if (!client) {
     notFound()

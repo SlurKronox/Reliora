@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
         name: name || null,
         passwordHash,
       },
-    })
+    }) as any
 
     const workspace = await prisma.workspace.create({
       data: {
         name: 'Meu workspace',
       },
-    })
+    }) as any
 
     await prisma.workspaceMember.create({
       data: {

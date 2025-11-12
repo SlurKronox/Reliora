@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
           where: {
             email: credentials.email,
           },
-        })
+        }) as any
 
         if (!user || !user.passwordHash) {
           throw new Error('Credenciais inválidas')

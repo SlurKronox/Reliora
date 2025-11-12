@@ -34,7 +34,7 @@ export default async function ClientsPage() {
     orderBy: {
       createdAt: 'desc',
     },
-  })
+  }) as any[]
 
   return (
     <div className="space-y-6">

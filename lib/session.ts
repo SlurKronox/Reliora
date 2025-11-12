@@ -34,7 +34,7 @@ export async function getUserWorkspace(userId: string) {
     orderBy: {
       createdAt: 'asc',
     },
-  })
+  }) as any
 
   return workspaceMember?.workspace || null
 }
