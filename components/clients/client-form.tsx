@@ -7,11 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { createClient } from '@/lib/actions/clients'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 export function ClientForm() {
   const router = useRouter()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -24,19 +23,11 @@ export function ClientForm() {
       const result = await createClient(formData)
 
       if (result?.error) {
-        toast({
-          title: 'Erro',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
         setLoading(false)
       }
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao criar cliente',
-        variant: 'destructive',
-      })
+      toast.error('Erro ao criar cliente')
       setLoading(false)
     }
   }

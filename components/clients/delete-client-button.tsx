@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { deleteClient } from '@/lib/actions/clients'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface DeleteClientButtonProps {
   clientId: string
@@ -25,26 +25,17 @@ interface DeleteClientButtonProps {
 export function DeleteClientButton({ clientId, clientName }: DeleteClientButtonProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
 
   async function handleDelete() {
     setLoading(true)
     try {
       const result = await deleteClient(clientId)
       if (result?.error) {
-        toast({
-          title: 'Erro',
-          description: result.error,
-          variant: 'destructive',
-        })
+        toast.error(result.error)
         setLoading(false)
       }
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao excluir cliente',
-        variant: 'destructive',
-      })
+      toast.error('Erro ao excluir cliente')
       setLoading(false)
     }
   }
