@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import { prisma } from '@/lib/db'
-import { Users, FileText } from 'lucide-react'
+import { Users, FileText, Plus, TrendingUp } from 'lucide-react'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -72,6 +74,28 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {clientsCount === 0 && (
+        <Card className="border-teal-200 bg-teal-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-teal-600" />
+              Comece agora
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Você ainda não tem clientes cadastrados. Adicione seu primeiro cliente para começar a gerar relatórios automatizados.
+            </p>
+            <Button asChild className="bg-teal-600 hover:bg-teal-700">
+              <Link href="/app/clients/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar primeiro cliente
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
