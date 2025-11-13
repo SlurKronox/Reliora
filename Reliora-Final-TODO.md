@@ -1,339 +1,226 @@
-# Reliora - TODO Final para MVP
+# Reliora - TODO para MVP
 
-## 1. Resumo do que está pronto
+## 📊 Status Atual
 
-✅ Landing page completa com seções hero, benefícios, público-alvo, CTA, FAQ
-✅ Auth com NextAuth (signup/login/logout) + bcrypt + validação de senha
-✅ Multi-tenant com RLS completo (Workspace, WorkspaceMember)
-✅ CRUD de clientes com server actions
-✅ Páginas /app: dashboard, /app/clients, /app/clients/[clientId], /app/account, /app/integrations
-✅ Schema Supabase completo: Workspace, Client, Report, GoogleConnection, Ga4ReportCache, PublicReport, CreditLedger
-✅ RLS ativo em todas as tabelas
-✅ API /api/waitlist funcional
-✅ Dashboard básico com métricas fake
-✅ Placeholder de relatórios com métricas fake e IA fake
-✅ Multi-provider IA configurado (OpenAI, Anthropic, Google) em lib/ai/summary.ts
-✅ Sistema de créditos básico (getCurrentCreditState, ensureCreditsAndConsume, maybeResetCreditPeriod)
-✅ Google OAuth flow (/api/integrations/google/authorize, callback, disconnect)
-✅ Estrutura de integração GA4 (lib/google/ga4.ts, ga4-mapping.ts)
-✅ Build funcional sem erros TypeScript
+### ✅ Implementado (Base Sólida)
+
+**Autenticação e Multi-tenant**
+- Auth completo (NextAuth + bcrypt + validação)
+- Multi-tenant com RLS (Workspace, WorkspaceMember)
+- Pages: login, signup, dashboard, clients, account, integrations
+
+**Estrutura de Dados**
+- Schema Supabase completo com RLS ativo
+- Tabelas: Workspace, Client, Report, GoogleConnection, Ga4ReportCache, PublicReport, CreditLedger
+
+**Funcionalidades Core**
+- CRUD de clientes (server actions)
+- Sistema de créditos básico
+- Multi-provider IA (OpenAI, Anthropic, Google)
+- Google OAuth flow (authorize, callback, disconnect)
+- API /api/waitlist funcional
+- Build sem erros TypeScript
+
+**Placeholders**
+- Dashboard com métricas fake
+- Relatórios com dados simulados
+- Estrutura de integração GA4 preparada
 
 ---
 
-## 2. Lista completa do que falta implementar
+## 🎯 Checklist MVP - 20 Passos Críticos
 
-### 2.1 Geração Real de Relatórios
+### 🔴 Fase 1: Core Funcional (Passos 1-7)
 
-**Arquivos a modificar:**
-- `app/(app)/app/clients/[clientId]/reports/new/actions.ts` - substituir fake por real
-- `lib/ai/summary.ts` - prompt melhorado e real
-- `lib/google/ga4.ts` - implementar fetchGA4Metrics completo
+- [ ] **1. IA Real Funcionando**
+  - Melhorar prompt em `lib/ai/summary.ts`
+  - Testar com GPT-4, Claude e Gemini
+  - Adicionar tratamento de erro e fallback
 
-**O que fazer:**
-1. Implementar fetchGA4Metrics real usando Google Analytics Data API
-2. Criar ga4-to-metrics mapper real (lib/google/ga4-mapping.ts já existe)
-3. Atualizar generateReport action para:
-   - Verificar se cliente tem ga4PropertyId
-   - Buscar connection do workspace
-   - Chamar GA4 real ou fake (fallback)
-   - Chamar IA real com prompt melhorado
-   - Consumir créditos via ensureCreditsAndConsume
-   - Salvar Report com aiModel, costCredits, useRealData=true
-4. Adicionar loading state na UI durante geração (3-10s)
-5. Tratamento de erro se GA4 falhar (fallback para fake + aviso)
+- [ ] **2. GA4 API Real**
+  - Implementar `fetchGA4Metrics()` em `lib/google/ga4.ts`
+  - Usar Google Analytics Data API
+  - Mapper de métricas GA4 → formato interno
 
-### 2.2 Sistema de Créditos Completo
+- [ ] **3. Geração de Relatório Completa**
+  - Atualizar `app/(app)/app/clients/[clientId]/reports/new/actions.ts`
+  - Verificar ga4PropertyId do cliente
+  - Chamar GA4 real ou fake (com fallback)
+  - Consumir créditos via `ensureCreditsAndConsume()`
+  - Salvar Report com `useRealData=true`
 
-**Já existe em lib/credits.ts, mas falta:**
-1. Página /app/credits para visualizar:
-   - Uso atual vs limite
-   - Data de reset
-   - Histórico de consumo (CreditLedger)
-   - Botão "Comprar mais créditos"
-2. Componente CreditBadge no header mostrando saldo
-3. Bloqueio de geração quando créditos acabarem
-4. Notificação quando < 20% de créditos
+- [ ] **4. Vínculo GA4 por Cliente**
+  - Campo "GA4 Property ID" em `/app/clients/[clientId]`
+  - Dropdown com properties do workspace
+  - Salvar `ga4PropertyId` e `ga4PropertyDisplay`
 
-**Arquivos a criar:**
-- `app/(app)/app/credits/page.tsx`
-- `components/credit-badge.tsx`
-- `lib/actions/credits.ts` (getCreditHistory)
+- [ ] **5. Sistema de Créditos**
+  - **Criar:** `app/(app)/app/credits/page.tsx`
+  - Mostrar: uso atual, limite, data de reset
+  - Histórico de consumo (CreditLedger)
+  - Botão "Comprar mais créditos"
 
-### 2.3 Página Pública do Relatório
+- [ ] **6. Billing Mercado Pago**
+  - **Criar:** `app/(app)/app/billing/page.tsx`
+  - Planos: Free (1K créditos), Pro (5K/R$97), Business (20K/R$297)
+  - **APIs:** create-subscription, webhook, history
+  - **Tabela:** PaymentHistory no Supabase
+  - Webhook atualiza plan e créditos
 
-**O que fazer:**
-1. Criar rota `app/public/reports/[token]/page.tsx`
-2. Criar action generatePublicLink(reportId) em lib/actions/reports.ts
-   - Gera token UUID
-   - Insere em PublicReport
-   - Retorna URL pública
-3. Criar action getPublicReport(token)
-   - Busca PublicReport + Report + Client (sem workspace check)
-   - Retorna dados públicos (sem custos, sem info sensível)
-4. Adicionar botão "Compartilhar" no relatório
-5. Página pública com:
-   - Branding do workspace (logo, cores)
-   - Métricas do relatório
-   - Resumo da IA
-   - Rodapé "Powered by Reliora"
-   - Sem header/sidebar
-6. Adicionar botão "Revogar link" no relatório privado
+- [ ] **7. Dashboard Real**
+  - Métricas reais: total clientes, relatórios, créditos usados
+  - Últimos 5 relatórios
+  - Alertas: créditos baixos, GA4 desconectado
+  - Botão "Gerar novo relatório"
 
-**Arquivos a criar:**
-- `app/public/reports/[token]/page.tsx`
-- `app/public/reports/[token]/not-found.tsx`
-- `lib/actions/reports.ts` (generatePublicLink, revokePublicLink, getPublicReport)
+### 🟡 Fase 2: UX Profissional (Passos 8-11)
 
-### 2.4 Dashboard Finalizado
+- [ ] **8. Loading States**
+  - Spinners em botões de submit
+  - Skeleton loaders em listas
+  - Progress na geração de relatório (3-10s)
 
-**Melhorar app/(app)/app/page.tsx:**
-1. Cards com métricas reais do workspace:
-   - Total de clientes
-   - Total de relatórios
-   - Créditos usados este mês
-   - Último relatório gerado
-2. Gráfico de consumo de créditos (últimos 30 dias)
-3. Lista de últimos 5 relatórios gerados
-4. Botão rápido "Gerar novo relatório"
-5. Alertas:
-   - Se créditos < 20%
-   - Se GA4 desconectado
-   - Se nenhum cliente cadastrado
+- [ ] **9. Toast Notifications**
+  - Sucesso (verde), erro (vermelho), info (azul)
+  - Feedback em todas as ações
+  - Consistência visual
 
-**Arquivos a modificar:**
-- `app/(app)/app/page.tsx`
+- [ ] **10. Empty States**
+  - "Nenhum cliente" → "Adicionar primeiro cliente"
+  - "GA4 desconectado" → "Conectar agora"
+  - CTAs claros em estados vazios
 
-### 2.5 Billing com Mercado Pago
+- [ ] **11. Confirmações**
+  - Confirmar antes de deletar cliente/relatório
+  - Avisar se cliente tem relatórios vinculados
 
-**O que fazer:**
-1. Criar página /app/billing
-   - Plano atual
-   - Histórico de pagamentos
-   - Botão "Alterar plano"
-   - Botão "Comprar créditos avulsos"
-2. Criar planos em config:
-   - Free: 1000 créditos/mês, 3 clientes
-   - Pro: 5000 créditos/mês, ilimitado, R$ 97/mês
-   - Business: 20000 créditos/mês, ilimitado, R$ 297/mês
-3. Integração Mercado Pago:
-   - POST /api/billing/create-subscription (cria preferência MP)
-   - POST /api/billing/webhook (recebe notificações MP)
-   - GET /api/billing/history (lista pagamentos)
-4. Criar tabela PaymentHistory no Supabase:
-   - workspaceId, amount, status, mpPaymentId, type (subscription|credits), createdAt
-5. Webhook MP atualiza:
-   - Workspace.plan
-   - Workspace.stripeCustomerId → mpCustomerId
-   - Workspace.creditLimit (se compra avulsa: +créditos)
-   - Insere em PaymentHistory
-6. Server action upgradePlan(plan) e buyCredits(amount)
+### 🔒 Fase 3: Segurança e Validação (Passos 12-14)
 
-**Arquivos a criar:**
-- `app/(app)/app/billing/page.tsx`
-- `app/api/billing/create-subscription/route.ts`
-- `app/api/billing/webhook/route.ts`
-- `app/api/billing/history/route.ts`
-- `lib/billing/mercadopago.ts` (helpers)
-- `lib/actions/billing.ts`
-- Migration: `supabase/migrations/add_payment_history.sql`
+- [ ] **12. Validação Zod**
+  - Schemas em todas as server actions
+  - Validação client-side em forms
+  - Sanitização de inputs
 
-**Variáveis de ambiente necessárias:**
+- [ ] **13. Verificação de Permissões**
+  - `getServerSession()` em todas as actions
+  - Verificar workspace ownership
+  - Logs de tentativas não autorizadas
+
+- [ ] **14. Rate Limiting**
+  - **Instalar:** `@upstash/ratelimit` + Upstash Redis
+  - 10 relatórios/hora por workspace
+  - 50 clientes/hora por workspace
+
+### 🔗 Fase 4: Integrações (Passos 15-17)
+
+- [ ] **15. Refresh Automático GA4**
+  - Verificar `expiresAt` antes de cada chamada
+  - `refreshAccessToken()` se < 5min
+  - **Criar:** `lib/google/refresh-token.ts`
+
+- [ ] **16. Webhook Mercado Pago**
+  - Validar signature do MP
+  - Atualizar Workspace.plan
+  - Adicionar créditos se compra avulsa
+  - Inserir em PaymentHistory
+
+- [ ] **17. Listagem Properties GA4**
+  - Implementar `listGA4Properties()` em `lib/google/ga4.ts`
+  - Mostrar em `/app/integrations`
+  - Google Analytics Admin API
+
+### 🚀 Fase 5: Extras MVP (Passos 18-20)
+
+- [ ] **18. Relatório Público**
+  - **Criar:** `app/public/reports/[token]/page.tsx`
+  - `generatePublicLink(reportId)` → UUID token
+  - Página sem header/sidebar
+  - Botão "Compartilhar" e "Revogar"
+
+- [ ] **19. Export PDF**
+  - **Instalar:** `puppeteer-core` ou `jspdf`
+  - Botão "Exportar PDF"
+  - **API:** `/api/reports/[reportId]/export-pdf`
+
+- [ ] **20. Deploy Produção**
+  - Configurar variáveis na Netlify
+  - Domínio customizado + SSL
+  - Testar: `npm run build && npm run typecheck`
+  - Google OAuth redirect_uri correto
+  - MP webhook URL correto
+
+---
+
+## 📂 Arquivos a Criar
+
+### Alta Prioridade
+
 ```
-MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_PUBLIC_KEY=
-NEXT_PUBLIC_APP_URL=https://reliora.com
-```
+app/(app)/app/
+├── credits/page.tsx              # Sistema de créditos
+├── billing/page.tsx              # Planos e pagamentos
+└── logs/page.tsx                 # Auditoria (opcional)
 
-### 2.6 GA4 OAuth + Conexão + Vínculo por Cliente
+app/public/reports/
+├── [token]/page.tsx              # Relatório público
+└── [token]/not-found.tsx
 
-**Já existe OAuth flow, mas falta:**
-1. Melhorar /app/integrations:
-   - Mostrar se conectado
-   - Listar propriedades GA4 disponíveis
-   - Botão "Desconectar"
-2. Implementar listGA4Properties(workspaceId) em lib/google/ga4.ts
-   - Usa accessToken do GoogleConnection
-   - Chama Google Analytics Admin API
-   - Retorna lista de properties
-3. Em /app/clients/[clientId]:
-   - Campo "Vincular GA4 Property"
-   - Dropdown com properties disponíveis
-   - Salva ga4PropertyId e ga4PropertyDisplay no Client
-4. Refresh automático do token:
-   - Criar lib/google/refresh-token.ts
-   - Antes de cada chamada GA4, verificar expiresAt
-   - Se < 5min, refresh token
+app/api/
+├── billing/
+│   ├── create-subscription/route.ts
+│   ├── webhook/route.ts
+│   └── history/route.ts
+├── reports/[reportId]/
+│   └── export-pdf/route.ts
+└── cron/
+    └── refresh-tokens/route.ts
 
-**Arquivos a modificar:**
-- `app/(app)/app/integrations/page.tsx`
-- `app/(app)/app/clients/[clientId]/page.tsx`
-- `lib/google/ga4.ts` (adicionar listGA4Properties)
-- `lib/google/oauth.ts` (adicionar refreshAccessToken)
-- `lib/actions/clients.ts` (adicionar updateClientGA4)
+lib/
+├── actions/
+│   ├── credits.ts                # getCreditHistory, getCreditState
+│   ├── billing.ts                # upgradePlan, buyCredits
+│   └── reports.ts                # generatePublicLink, getPublicReport
+├── billing/
+│   └── mercadopago.ts            # Helpers MP
+├── google/
+│   └── refresh-token.ts          # Refresh automático
+├── pdf/
+│   └── generator.ts              # Puppeteer helper
+├── errors.ts                     # Classes de erro
+└── audit.ts                      # Logs de auditoria
 
-### 2.7 Webhooks
+components/
+└── credit-badge.tsx              # Badge de créditos no header
 
-**Webhooks necessários:**
-1. Mercado Pago (já mencionado em 2.5)
-2. Google Token Refresh via cron:
-   - Criar edge function no Supabase ou route /api/cron/refresh-tokens
-   - Roda a cada 30min
-   - Busca GoogleConnections com expiresAt < 1h
-   - Faz refresh preventivo
-
-**Arquivos a criar:**
-- `app/api/cron/refresh-tokens/route.ts`
-
-### 2.8 Exportar Relatório em PDF
-
-**O que fazer:**
-1. Instalar: `npm install puppeteer-core @sparticuz/chromium`
-2. Criar API route POST /api/reports/[reportId]/export-pdf
-   - Recebe reportId
-   - Verifica permissão (workspace do user = workspace do report)
-   - Gera HTML do relatório (server-side)
-   - Usa puppeteer + chromium para renderizar PDF
-   - Retorna PDF como download
-3. Adicionar botão "Exportar PDF" na página do relatório
-4. Considerar usar link público temporário (gera token, puppeteer acessa /public/reports/[token])
-
-**Arquivos a criar:**
-- `app/api/reports/[reportId]/export-pdf/route.ts`
-- `lib/pdf/generator.ts` (helper puppeteer)
-
-**Alternativa mais simples:**
-- Usar lib client-side como `jspdf` ou `html2canvas`
-- Botão exporta no browser (sem custo servidor)
-
-### 2.9 Logs e Auditoria
-
-**O que fazer:**
-1. Criar tabela AuditLog:
-   - id, workspaceId, userId, action, entity, entityId, details (JSONB), createdAt
-2. Middleware para registrar ações:
-   - report_generated
-   - client_created, client_updated, client_deleted
-   - credits_consumed
-   - plan_upgraded
-   - ga4_connected, ga4_disconnected
-3. Página /app/logs para admin:
-   - Filtrar por ação, período
-   - Visualizar detalhes JSON
-
-**Arquivos a criar:**
-- Migration: `supabase/migrations/add_audit_log.sql`
-- `lib/audit.ts` (logAction helper)
-- `app/(app)/app/logs/page.tsx` (opcional)
-
-### 2.10 Melhorias de UX
-
-**O que fazer:**
-1. Loading states em todas as ações:
-   - Botões com spinner durante submit
-   - Skeleton loaders em listas
-2. Toast notifications consistentes:
-   - Sucesso (verde)
-   - Erro (vermelho)
-   - Info (azul)
-3. Empty states:
-   - "Nenhum cliente cadastrado" com botão "Adicionar primeiro cliente"
-   - "Nenhum relatório gerado" com botão "Gerar primeiro relatório"
-   - "GA4 não conectado" com botão "Conectar agora"
-4. Confirmação antes de deletar:
-   - Cliente (avisa se tem relatórios)
-   - Relatório
-5. Breadcrumbs em todas as páginas internas
-6. Página 404 customizada
-7. Página de erro customizada
-
-**Arquivos a modificar:**
-- Todos os componentes client com forms/buttons
-- `app/not-found.tsx`
-- `app/error.tsx`
-- `components/ui/breadcrumb.tsx` (já existe)
-
-### 2.11 Segurança, Validação e Proteção de Server Actions
-
-**O que fazer:**
-1. Validação com Zod em todas as server actions:
-   - createClient, updateClient, deleteClient
-   - generateReport
-   - upgradePlan, buyCredits
-2. Rate limiting:
-   - Instalar `@upstash/ratelimit` + Upstash Redis (gratuito)
-   - Limitar geração de relatórios: 10/hora por workspace
-   - Limitar criação de clientes: 50/hora por workspace
-3. CSRF protection:
-   - Next.js já protege forms com actions
-   - Garantir que POST APIs verificam origin
-4. Sanitização de inputs:
-   - Nomes de clientes (limitar caracteres especiais)
-   - Notas de clientes (prevenir XSS se renderizadas)
-5. Verificar permissões em TODAS as actions:
-   - getServerSession → pegar workspaceId via WorkspaceMember
-   - Verificar que recurso pertence ao workspace
-6. Logs de tentativas de acesso não autorizado
-
-**Arquivos a modificar:**
-- Todas as server actions em lib/actions/
-- Todas as API routes em app/api/
-
-**Instalar:**
-```bash
-npm install @upstash/ratelimit @upstash/redis zod
+supabase/migrations/
+├── add_payment_history.sql
+└── add_audit_log.sql
 ```
 
-### 2.12 Centralização dos Providers de IA
+---
 
-**Já está em lib/ai/summary.ts, mas melhorar:**
-1. Criar lib/ai/providers.ts:
-   - getProvider(provider: string) → retorna classe Provider
-   - Interface Provider com método .generateSummary()
-   - Classes OpenAIProvider, AnthropicProvider, GoogleProvider
-2. Adicionar fallback automático:
-   - Se provider principal falhar, tentar segundo provider
-   - Ordem: google → anthropic → openai
-3. Logging de qual provider foi usado
-4. Custo estimado em créditos por provider/modelo
+## 🔧 Arquivos a Modificar
 
-**Arquivos a modificar:**
-- `lib/ai/summary.ts`
+### Críticos
 
-**Arquivos a criar:**
-- `lib/ai/providers.ts`
-- `lib/ai/costs.ts` (tabela de custos por modelo)
+- `app/(app)/app/page.tsx` - Dashboard com métricas reais
+- `app/(app)/app/clients/[clientId]/page.tsx` - Vínculo GA4
+- `app/(app)/app/clients/[clientId]/reports/new/actions.ts` - IA + GA4 real
+- `app/(app)/app/integrations/page.tsx` - Listar properties GA4
+- `lib/ai/summary.ts` - Prompt melhorado
+- `lib/google/ga4.ts` - fetchGA4Metrics + listGA4Properties
+- `lib/actions/clients.ts` - updateClientGA4
 
-### 2.13 Tratamento Global de Erros
+### Todos os componentes com forms/actions
+- Adicionar loading states
+- Adicionar validação Zod
+- Adicionar verificação de permissões
 
-**O que fazer:**
-1. Criar error boundary global em app/error.tsx
-2. Criar lib/errors.ts com classes de erro:
-   - AppError (base)
-   - UnauthorizedError
-   - NotFoundError
-   - ValidationError
-   - RateLimitError
-   - InsufficientCreditsError
-   - ExternalAPIError (GA4, IA, etc)
-3. Handler global de erros em server actions:
-   - Captura erro
-   - Loga no console com contexto
-   - Retorna mensagem amigável ao user
-   - Se crítico, notifica admin (email/Slack)
-4. Sentry ou similar para produção (opcional)
+---
 
-**Arquivos a criar:**
-- `lib/errors.ts`
-- `lib/error-handler.ts`
+## 🌍 Variáveis de Ambiente
 
-**Arquivos a modificar:**
-- `app/error.tsx`
-- Todas as server actions
-
-### 2.14 Requisitos de Produção
-
-**Variáveis de ambiente obrigatórias:**
-```
+```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -343,13 +230,14 @@ DATABASE_URL=
 NEXTAUTH_URL=https://reliora.com
 NEXTAUTH_SECRET=
 
-# IA (pelo menos um)
+# IA (pelo menos uma)
 AI_PROVIDER=google
 GOOGLE_API_KEY=
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
+AI_MODEL=gemini-2.0-flash-exp
 
-# Google OAuth (GA4)
+# Google OAuth
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
@@ -360,217 +248,145 @@ MERCADOPAGO_PUBLIC_KEY=
 # App
 NEXT_PUBLIC_APP_URL=https://reliora.com
 
-# Rate Limiting (opcional)
+# Rate Limiting (Upstash)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```
 
-**Checklist produção:**
-- [ ] Todas as variáveis configuradas no Netlify
-- [ ] HTTPS forçado
-- [ ] CORS configurado (se necessário)
-- [ ] Rate limiting ativo
-- [ ] Logs de erro configurados
-- [ ] Backup do Supabase ativo
-- [ ] Domínio customizado
-- [ ] SSL válido
-- [ ] Google OAuth redirect_uri correto
-- [ ] Mercado Pago webhook URL correto
-- [ ] Testar build: `npm run build`
-- [ ] Testar typecheck: `npm run typecheck`
+---
+
+## 📦 Dependências a Instalar
+
+```bash
+# Validação e segurança
+npm install zod @upstash/ratelimit @upstash/redis
+
+# PDF (escolher uma)
+npm install puppeteer-core @sparticuz/chromium
+# OU
+npm install jspdf html2canvas
+
+# Mercado Pago SDK
+npm install mercadopago
+```
 
 ---
 
-## 3. Separação por nível de urgência
+## 🎨 Melhorias de UX
 
-### 🔴 URGÊNCIA ALTA (necessário para lançar)
+### Loading States
+- [ ] Spinner em botões durante submit
+- [ ] Skeleton loaders em: clientes, relatórios, dashboard
+- [ ] Progress indicator na geração de relatório
+- [ ] Disable de botões durante loading
 
-1. Geração real de relatórios com IA real (2.1)
-2. GA4 OAuth funcionando + vincular property no cliente (2.6)
-3. Sistema de créditos completo com página (2.2)
-4. Billing com Mercado Pago (2.5)
-5. Dashboard finalizado com métricas reais (2.4)
-6. Validação e segurança em server actions (2.11)
-7. Loading states e toast notifications (2.10 - parcial)
-8. Requisitos de produção: variáveis + build (2.14)
-9. Tratamento de erros básico (2.13 - parcial)
-10. Refresh automático do token GA4 (2.6 - parcial)
+### Feedback Visual
+- [ ] Toast verde (sucesso)
+- [ ] Toast vermelho (erro)
+- [ ] Toast azul (info)
+- [ ] Animações suaves (fade in/out)
 
-### 🟡 URGÊNCIA MÉDIA (melhora o MVP)
+### Estados Vazios
+- [ ] Empty state com ilustração + CTA
+- [ ] "Nenhum cliente cadastrado"
+- [ ] "Nenhum relatório gerado"
+- [ ] "GA4 não conectado"
 
-11. Página pública do relatório (2.3)
-12. Exportar relatório em PDF (2.8)
-13. Melhorias de UX: empty states, confirmações (2.10 - restante)
-14. Centralização dos providers de IA com fallback (2.12)
-15. Rate limiting (2.11 - parcial)
-16. Página de créditos com histórico detalhado (2.2 - parcial)
-17. Webhook de refresh de tokens via cron (2.7)
-
-### 🟢 URGÊNCIA BAIXA (pós-lançamento)
-
-18. Logs e auditoria completos com página (2.9)
-19. Página 404 e error customizadas (2.10 - parcial)
-20. Integração com Sentry (2.13 - parcial)
-21. Melhorias de performance (caching de GA4, otimização de queries)
-22. Testes automatizados
-23. Documentação interna para devs
+### Navegação
+- [ ] Breadcrumbs em todas as páginas
+- [ ] Página 404 customizada
+- [ ] Página de erro customizada
 
 ---
 
-## 4. Lista das páginas e rotas que ainda precisam existir
+## 🔒 Segurança - Checklist
 
-### Páginas frontend que faltam:
-
-**ALTA URGÊNCIA:**
-- ✅ `app/(app)/app/page.tsx` - existe mas precisa de melhorias
-- 🔴 `app/(app)/app/credits/page.tsx` - CRIAR
-- 🔴 `app/(app)/app/billing/page.tsx` - CRIAR
-- ✅ `app/(app)/app/integrations/page.tsx` - existe mas precisa melhorar
-- ✅ `app/(app)/app/clients/[clientId]/page.tsx` - existe mas precisa adicionar vínculo GA4
-
-**MÉDIA URGÊNCIA:**
-- 🟡 `app/public/reports/[token]/page.tsx` - CRIAR
-- 🟡 `app/public/reports/[token]/not-found.tsx` - CRIAR
-
-**BAIXA URGÊNCIA:**
-- 🟢 `app/(app)/app/logs/page.tsx` - CRIAR (opcional)
-- 🟢 `app/(app)/app/settings/page.tsx` - CRIAR (branding, configurações)
-
-### API Routes que faltam:
-
-**ALTA URGÊNCIA:**
-- 🔴 `app/api/billing/create-subscription/route.ts` - CRIAR
-- 🔴 `app/api/billing/webhook/route.ts` - CRIAR
-- 🔴 `app/api/billing/history/route.ts` - CRIAR
-
-**MÉDIA URGÊNCIA:**
-- 🟡 `app/api/reports/[reportId]/export-pdf/route.ts` - CRIAR
-- 🟡 `app/api/cron/refresh-tokens/route.ts` - CRIAR
-
-**Já existem e funcionam:**
-- ✅ `app/api/auth/[...nextauth]/route.ts`
-- ✅ `app/api/auth/signup/route.ts`
-- ✅ `app/api/integrations/google/authorize/route.ts`
-- ✅ `app/api/integrations/google/callback/route.ts`
-- ✅ `app/api/integrations/google/disconnect/route.ts`
-- ✅ `app/api/waitlist/route.ts`
-
-### Server Actions que faltam:
-
-**ALTA URGÊNCIA:**
-- 🔴 Melhorar `app/(app)/app/clients/[clientId]/reports/new/actions.ts` (IA real + GA4 real)
-- 🔴 `lib/actions/credits.ts` - CRIAR (getCreditHistory, getCreditState)
-- 🔴 `lib/actions/billing.ts` - CRIAR (upgradePlan, buyCredits, getPaymentHistory)
-- 🔴 `lib/actions/clients.ts` - adicionar updateClientGA4
-
-**MÉDIA URGÊNCIA:**
-- 🟡 `lib/actions/reports.ts` - CRIAR (generatePublicLink, revokePublicLink, getPublicReport)
-
-**Já existem:**
-- ✅ `lib/actions/clients.ts` (getClients, createClient, updateClient, deleteClient)
-
----
-
-## 5. Melhorias técnicas obrigatórias
-
-### 5.1 Loading States
-- [ ] Spinner em todos os botões de submit durante ação
-- [ ] Skeleton loaders em listas (clientes, relatórios)
-- [ ] Loading state na geração de relatório (3-10s)
-- [ ] Progress indicator no dashboard
-
-### 5.2 Tratamento de Erros
-- [ ] Toast de erro em todas as ações falhadas
-- [ ] Mensagens de erro amigáveis (não expor stack traces)
-- [ ] Fallback de IA se provider principal falhar
-- [ ] Fallback de GA4 para métricas fake se GA4 falhar + aviso ao user
-- [ ] Error boundary global
-
-### 5.3 Abstração dos Providers
-- [ ] Criar interface Provider para IA
-- [ ] Implementar OpenAIProvider, AnthropicProvider, GoogleProvider
-- [ ] Fallback automático entre providers
-- [ ] Logging de qual provider foi usado em cada relatório
-- [ ] Custo em créditos diferente por modelo
-
-### 5.4 Otimização de Queries
-- [ ] Cache de GA4 (Ga4ReportCache já existe, usar!)
-- [ ] Limitar queries Supabase com .limit() e paginação
-- [ ] Índices no Supabase para queries comuns:
-  - GoogleConnection.workspaceId
-  - CreditLedger.workspaceId, createdAt
-  - Report.clientId, createdAt
-- [ ] Usar .select() específico ao invés de select('*')
-
-### 5.5 Validação
-- [ ] Zod schemas para todas as server actions
-- [ ] Validação client-side em forms (react-hook-form já usado)
-- [ ] Sanitização de inputs (nomes, notas)
-- [ ] Validação de GA4 propertyId format
-- [ ] Validação de datas (periodStart < periodEnd)
-
-### 5.6 Limpeza de Código
-- [ ] Remover console.logs desnecessários (deixar só logs importantes)
-- [ ] Remover imports não usados
-- [ ] Remover código comentado
-- [ ] Padronizar nomes de variáveis
-- [ ] Adicionar JSDoc em funções complexas
-- [ ] Extrair magic numbers para constantes (ex: CREDIT_COSTS)
-
-### 5.7 Segurança
-- [ ] Verificar permissões em TODAS as server actions
-- [ ] Rate limiting em geração de relatórios
+- [ ] Senhas com bcrypt (10 rounds) ✅
+- [ ] Sessões NextAuth seguras ✅
+- [ ] RLS ativo em todas as tabelas ✅
+- [ ] Validação Zod em server actions
+- [ ] Verificação de workspace em actions
+- [ ] Rate limiting em endpoints críticos
+- [ ] API keys apenas server-side ✅
 - [ ] HTTPS forçado em produção
-- [ ] CORS configurado corretamente
-- [ ] Secrets nunca expostos no client
-- [ ] Validação de origin em webhooks (MP)
-- [ ] Logs de tentativas de acesso não autorizado
-
-### 5.8 Monitoramento Simples
-- [ ] Logs estruturados com contexto (workspaceId, userId, action)
-- [ ] Erro crítico = notificação (email ou Slack - opcional)
-- [ ] Dashboard interno de uso (total de reports gerados, créditos consumidos)
-- [ ] Alertas: créditos acabando, GA4 token expirado, provider de IA com erro
+- [ ] CORS configurado
+- [ ] Sanitização de inputs
+- [ ] Logs de acesso não autorizado
 
 ---
 
-## 6. Checklist final de 20 passos para MVP pronto
+## 🧪 Testes Antes do Deploy
 
-### Implementação Core
+### Build e Type Check
+```bash
+npm run build
+npm run typecheck
+npm run lint
+```
 
-- [ ] **1. IA real funcionando** - lib/ai/summary.ts chamando GPT-4/Claude/Gemini real, prompt melhorado
-- [ ] **2. GA4 real funcionando** - lib/google/ga4.ts fetchando métricas reais via Data API
-- [ ] **3. Geração de relatório completa** - actions.ts usando IA real + GA4 real + consumindo créditos
-- [ ] **4. Vínculo GA4 por cliente** - Campo no cliente para vincular property ID
-- [ ] **5. Sistema de créditos funcional** - Página /app/credits com uso, limite, histórico
-- [ ] **6. Billing Mercado Pago** - Página /app/billing + webhooks funcionando
-- [ ] **7. Dashboard com métricas reais** - Cards com totais reais do workspace
+### Testes Funcionais
+- [ ] Signup → Login → Dashboard
+- [ ] Criar cliente → Gerar relatório
+- [ ] Conectar GA4 → Vincular property
+- [ ] Comprar créditos → Upgrade de plano
+- [ ] Compartilhar relatório → Acessar link público
+- [ ] Export PDF do relatório
+- [ ] Desconectar GA4
 
-### UX e Feedback
-
-- [ ] **8. Loading states em tudo** - Spinners, skeletons, progress indicators
-- [ ] **9. Toast notifications consistentes** - Sucesso/erro/info em todas as ações
-- [ ] **10. Empty states com CTAs** - "Nenhum cliente" → "Adicionar primeiro cliente"
-- [ ] **11. Confirmações antes de deletar** - Cliente, relatório
-
-### Segurança e Validação
-
-- [ ] **12. Validação Zod em todas as actions** - createClient, generateReport, etc
-- [ ] **13. Verificação de permissões em tudo** - Sempre verificar workspace ownership
-- [ ] **14. Rate limiting ativo** - 10 reports/hora, 50 clientes/hora por workspace
-
-### Integrações
-
-- [ ] **15. Refresh automático de token GA4** - Verificar expiresAt antes de cada chamada
-- [ ] **16. Webhook Mercado Pago funcionando** - Atualiza plan, créditos, histórico
-- [ ] **17. Listagem de properties GA4** - /app/integrations mostra properties disponíveis
-
-### Extras Importantes
-
-- [ ] **18. Página pública do relatório** - /public/reports/[token] funcionando
-- [ ] **19. Export PDF do relatório** - Botão "Exportar PDF" funcionando
-- [ ] **20. Deploy em produção** - Netlify configurado, variáveis setadas, build OK, domínio custom
+### Testes de Segurança
+- [ ] Tentar acessar workspace de outro usuário
+- [ ] Gerar 20 relatórios seguidos (rate limit)
+- [ ] Acessar relatório sem permissão
+- [ ] Token público expirado/inválido
 
 ---
 
-**Conclusão:** Completando estes 20 passos, o Reliora estará pronto para vender como MVP funcional e seguro.
+## 📊 Priorização por Impacto
+
+### 🔥 Imprescindível (Bloqueia MVP)
+1-7, 12-14, 20
+
+### ⚡ Importante (Melhora MVP)
+8-11, 15-17
+
+### 💡 Bom ter (Pós-lançamento)
+18-19, logs/auditoria, página 404/error customizada
+
+---
+
+## 🚀 Roteiro de Implementação
+
+### Sprint 1 (1 semana)
+- Passos 1-7: Core funcional
+- IA + GA4 + Créditos + Billing + Dashboard
+
+### Sprint 2 (3 dias)
+- Passos 8-14: UX + Segurança
+- Loading, toast, validação, rate limit
+
+### Sprint 3 (2 dias)
+- Passos 15-17: Integrações
+- Refresh GA4, webhook MP, listagem properties
+
+### Sprint 4 (2 dias)
+- Passos 18-20: Extras + Deploy
+- Relatório público, PDF, produção
+
+**Total estimado: 12 dias úteis para MVP completo**
+
+---
+
+## ✅ Critério de Sucesso
+
+**MVP pronto quando:**
+- ✅ User pode gerar relatório real com GA4 + IA
+- ✅ User pode comprar créditos e fazer upgrade
+- ✅ User pode vincular propriedades GA4
+- ✅ Sistema seguro e validado
+- ✅ UX profissional com feedback claro
+- ✅ Deploy em produção estável
+- ✅ Todos os 20 passos concluídos
+
+---
+
+**Status:** 📍 Base implementada | 🎯 20 passos para MVP | 🚀 12 dias para lançamento
