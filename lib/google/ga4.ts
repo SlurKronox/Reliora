@@ -191,3 +191,81 @@ export async function listGA4PropertiesForWorkspace(workspaceId: string): Promis
   const accessToken = await getValidAccessToken(workspaceId)
   return listGa4Properties(accessToken)
 }
+
+/**
+ * Fetch GA4 metrics and return in internal format (matching fakeMetrics)
+ */
+export async function fetchGA4Metrics(
+  workspaceId: string,
+  ga4PropertyId: string,
+  periodStart: Date,
+  periodEnd: Date
+) {
+  try {
+    const accessToken = await getValidAccessToken(workspaceId)
+
+    const startDate = periodStart.toISOString().split('T')[0]
+    const endDate = periodEnd.toISOString().split('T')[0]
+
+    const ga4Response = await runGa4Report({
+      accessToken,
+      propertyId: ga4PropertyId,
+      startDate,
+      endDate
+    })
+
+    const daily: Array<{
+      date: string
+      impressions: number
+      clicks: number
+      conversions: number
+      cost: number
+    }> = []
+
+    let totalSessions = 0
+    let totalUsers = 0
+    let totalConversions = 0
+    let totalRevenue = 0
+
+    if (ga4Response.rows) {
+      for (const row of ga4Response.rows) {
+        const date = row.dimensionValues[0]?.value || ''
+        const sessions = parseInt(row.metricValues[0]?.value || '0')
+        const users = parseInt(row.metricValues[1]?.value || '0')
+        const conversions = parseFloat(row.metricValues[2]?.value || '0')
+        const revenue = parseFloat(row.metricValues[3]?.value || '0')
+
+        daily.push({
+          date,
+          impressions: sessions,
+          clicks: users,
+          conversions: Math.round(conversions),
+          cost: revenue
+        })
+
+        totalSessions += sessions
+        totalUsers += users
+        totalConversions += conversions
+        totalRevenue += revenue
+      }
+    }
+
+    const ctr = totalSessions > 0
+      ? Math.round((totalUsers / totalSessions) * 10000) / 100
+      : 0
+
+    return {
+      totals: {
+        impressions: totalSessions,
+        clicks: totalUsers,
+        ctr,
+        conversions: Math.round(totalConversions),
+        cost: Math.round(totalRevenue * 100) / 100
+      },
+      daily
+    }
+  } catch (error) {
+    console.error('[GA4] fetchGA4Metrics failed:', error)
+    throw error
+  }
+}

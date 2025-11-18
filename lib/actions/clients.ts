@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import { UnauthorizedError, NotFoundError, ValidationError } from '@/lib/errors'
+import { checkClientRateLimit } from '@/lib/rate-limit'
 
 const createClientSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
@@ -35,6 +36,8 @@ export async function createClient(formData: FormData) {
   if (!result.success) {
     throw new ValidationError(result.error.errors[0].message)
   }
+
+  await checkClientRateLimit(workspace.id)
 
   try {
     const client = await prisma.client.create({

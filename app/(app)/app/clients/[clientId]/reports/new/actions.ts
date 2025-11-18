@@ -9,6 +9,8 @@ import { prisma } from '@/lib/db'
 import { generateFakeMetrics } from '@/lib/fakeMetrics'
 import { generateWithFallback } from '@/lib/ai/providers'
 import { UnauthorizedError, NotFoundError, ValidationError, InsufficientCreditsError } from '@/lib/errors'
+import { fetchGA4Metrics } from '@/lib/google/ga4'
+import { checkReportRateLimit } from '@/lib/rate-limit'
 
 const reportSchema = z.object({
   clientId: z.string().min(1, 'Client ID obrigatório'),
@@ -65,8 +67,27 @@ export async function createReportAction(formData: FormData) {
     throw new NotFoundError('Cliente não encontrado')
   }
 
+  await checkReportRateLimit(workspace.id)
+
   try {
-    const metrics = generateFakeMetrics(startDate, endDate)
+    let metrics
+    let useRealData = false
+
+    if (client.ga4PropertyId) {
+      try {
+        console.log(`[Report] Fetching GA4 metrics for property ${client.ga4PropertyId}`)
+        metrics = await fetchGA4Metrics(workspace.id, client.ga4PropertyId, startDate, endDate)
+        useRealData = true
+        console.log('[Report] Using real GA4 data')
+      } catch (ga4Error) {
+        console.error('[Report] GA4 fetch failed, falling back to fake metrics:', ga4Error)
+        metrics = generateFakeMetrics(startDate, endDate)
+        useRealData = false
+      }
+    } else {
+      console.log('[Report] No GA4 property linked, using fake metrics')
+      metrics = generateFakeMetrics(startDate, endDate)
+    }
 
     const estimatedCost = 5
     const creditsAvailable = workspace.creditLimit - workspace.creditUsed
@@ -85,7 +106,7 @@ export async function createReportAction(formData: FormData) {
       endDate
     )
 
-    console.log(`[Report] Gerado com ${provider}, custo: ${cost} créditos`)
+    console.log(`[Report] Gerado com ${provider}, custo: ${cost} créditos, GA4 real: ${useRealData}`)
 
     const report = await prisma.report.create({
       data: {
@@ -96,7 +117,7 @@ export async function createReportAction(formData: FormData) {
         aiSummaryText: summary,
         aiModel: provider,
         costCredits: cost,
-        useRealData: false
+        useRealData
       },
     })
 
