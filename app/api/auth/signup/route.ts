@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/db'
+import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: NextRequest) {
@@ -20,13 +20,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-
-    const { data: existingUser } = await supabase
-      .from('User')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
 
     if (existingUser) {
       return NextResponse.json(
@@ -37,68 +33,33 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    const { data: user, error: userError } = await (supabase as any)
-      .from('User')
-      .insert({
+    const user = await prisma.user.create({
+      data: {
         email,
         name: name || null,
         passwordHash,
-      })
-      .select()
-      .single()
+      },
+    })
 
-    if (userError) {
-      console.error('User creation error:', userError)
-      return NextResponse.json(
-        { error: 'Erro ao criar usuário: ' + userError.message },
-        { status: 500 }
-      )
-    }
-
-    const { data: workspace, error: workspaceError } = await (supabase as any)
-      .from('Workspace')
-      .insert({
+    const workspace = await prisma.workspace.create({
+      data: {
         name: 'Meu workspace',
-      })
-      .select()
-      .single()
+      },
+    })
 
-    if (workspaceError) {
-      console.error('Workspace creation error:', workspaceError)
-
-      await (supabase as any).from('User').delete().eq('id', user.id)
-
-      return NextResponse.json(
-        { error: 'Erro ao criar workspace: ' + workspaceError.message },
-        { status: 500 }
-      )
-    }
-
-    const { error: memberError } = await (supabase as any)
-      .from('WorkspaceMember')
-      .insert({
+    await prisma.workspaceMember.create({
+      data: {
         userId: user.id,
         workspaceId: workspace.id,
         role: 'owner',
-      })
-
-    if (memberError) {
-      console.error('WorkspaceMember creation error:', memberError)
-
-      await (supabase as any).from('User').delete().eq('id', user.id)
-      await (supabase as any).from('Workspace').delete().eq('id', workspace.id)
-
-      return NextResponse.json(
-        { error: 'Erro ao criar membro do workspace: ' + memberError.message },
-        { status: 500 }
-      )
-    }
+      },
+    })
 
     return NextResponse.json({ success: true, userId: user.id })
   } catch (error) {
     console.error('Signup error:', error)
     return NextResponse.json(
-      { error: 'Erro ao criar conta: ' + (error instanceof Error ? error.message : 'Unknown') },
+      { error: 'Erro ao criar conta' },
       { status: 500 }
     )
   }

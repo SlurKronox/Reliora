@@ -7,16 +7,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle2, XCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
-async function getGoogleConnection(workspaceId: string): Promise<{ id: string; createdAt: string; expiresAt: string } | null> {
-  const supabase = createClient()
+async function getGoogleConnection(workspaceId: string) {
+  const prisma = createClient()
 
-  const { data } = await supabase
-    .from('GoogleConnection' as any)
-    .select('id, createdAt, expiresAt')
-    .eq('workspaceId', workspaceId)
-    .maybeSingle()
+  const connection = await prisma.googleConnection.findUnique({
+    where: { workspaceId },
+    select: { id: true, createdAt: true, expiresAt: true }
+  })
 
-  return data as { id: string; createdAt: string; expiresAt: string } | null
+  return connection
 }
 
 export default async function IntegrationsPage({
@@ -30,14 +29,12 @@ export default async function IntegrationsPage({
     redirect('/login')
   }
 
-  const supabase = createClient()
+  const prisma = createClient()
 
-  const { data: member }: { data: { workspaceId: string } | null } = await supabase
-    .from('WorkspaceMember')
-    .select('workspaceId')
-    .eq('userId', session.user.id)
-    .limit(1)
-    .maybeSingle()
+  const member = await prisma.workspaceMember.findFirst({
+    where: { userId: session.user.id },
+    select: { workspaceId: true }
+  })
 
   if (!member) {
     redirect('/app')

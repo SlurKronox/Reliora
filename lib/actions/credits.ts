@@ -1,7 +1,7 @@
 'use server'
 
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
-import { createClient } from '@/lib/db'
+import { prisma } from '@/lib/db'
 
 export type CreditState = {
   used: number
@@ -28,38 +28,33 @@ export async function getCreditState(): Promise<CreditState | null> {
   const workspace = await getUserWorkspace(user.id)
   if (!workspace) return null
 
-  const supabase = createClient()
+  const workspaceData = await prisma.workspace.findUnique({
+    where: { id: workspace.id },
+    select: {
+      creditLimit: true,
+      creditUsed: true,
+      creditPeriodStart: true
+    }
+  })
 
-  const { data: workspaceData, error } = await supabase
-    .from('Workspace')
-    .select('creditLimit, creditUsed, creditPeriodStart')
-    .eq('id', workspace.id)
-    .single()
-
-  if (error || !workspaceData) {
-    console.error('[Credits] Failed to fetch workspace credit state:', error)
+  if (!workspaceData) {
+    console.error('[Credits] Failed to fetch workspace credit state')
     return null
   }
 
-  const wsData = workspaceData as {
-    creditLimit: number
-    creditUsed: number
-    creditPeriodStart: string
-  }
-
-  const periodStart = new Date(wsData.creditPeriodStart)
+  const periodStart = new Date(workspaceData.creditPeriodStart)
   const resetDate = new Date(periodStart)
   resetDate.setMonth(resetDate.getMonth() + 1)
 
-  const remaining = wsData.creditLimit - wsData.creditUsed
-  const percentageUsed = wsData.creditLimit > 0
-    ? (wsData.creditUsed / wsData.creditLimit) * 100
+  const remaining = workspaceData.creditLimit - workspaceData.creditUsed
+  const percentageUsed = workspaceData.creditLimit > 0
+    ? (workspaceData.creditUsed / workspaceData.creditLimit) * 100
     : 0
   const isLowCredits = percentageUsed >= 80
 
   return {
-    used: wsData.creditUsed,
-    limit: wsData.creditLimit,
+    used: workspaceData.creditUsed,
+    limit: workspaceData.creditLimit,
     remaining: Math.max(0, remaining),
     percentageUsed: Math.min(100, Math.max(0, percentageUsed)),
     periodStart,
@@ -77,19 +72,21 @@ export async function getCreditHistory(
   const workspace = await getUserWorkspace(user.id)
   if (!workspace) return []
 
-  const supabase = createClient()
+  const data = await prisma.creditLedger.findMany({
+    where: { workspaceId: workspace.id },
+    select: {
+      id: true,
+      createdAt: true,
+      delta: true,
+      reason: true,
+      reportId: true
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit
+  })
 
-  const { data, error } = await (supabase as any)
-    .from('CreditLedger')
-    .select('id, createdAt, delta, reason, reportId')
-    .eq('workspaceId', workspace.id)
-    .order('createdAt', { ascending: false })
-    .limit(limit)
-
-  if (error) {
-    console.error('[Credits] Failed to fetch credit history:', error)
-    return []
-  }
-
-  return (data || []) as CreditHistoryEntry[]
+  return data.map(entry => ({
+    ...entry,
+    createdAt: entry.createdAt.toISOString()
+  }))
 }

@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -19,11 +19,23 @@ model User {
 }
 
 model Workspace {
-  id        String            @id @default(cuid())
-  name      String
-  createdAt DateTime          @default(now())
-  members   WorkspaceMember[]
-  clients   Client[]
+  id                   String            @id @default(cuid())
+  name                 String
+  createdAt            DateTime          @default(now())
+  brandPrimary         String?
+  brandAccent          String?
+  brandLogoUrl         String?
+  creditLimit          Int               @default(1000)
+  creditUsed           Int               @default(0)
+  creditPeriodStart    DateTime          @default(now())
+  plan                 String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  members              WorkspaceMember[]
+  clients              Client[]
+  googleConnections    GoogleConnection[]
+  ga4ReportCaches      Ga4ReportCache[]
+  creditLedgers        CreditLedger[]
 }
 
 model WorkspaceMember {
@@ -39,24 +51,78 @@ model WorkspaceMember {
 }
 
 model Client {
-  id          String    @id @default(cuid())
-  workspaceId String
-  name        String
-  notes       String?
-  createdAt   DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  reports     Report[]
+  id                  String           @id @default(cuid())
+  workspaceId         String
+  name                String
+  notes               String?
+  ga4PropertyId       String?
+  ga4PropertyDisplay  String?
+  createdAt           DateTime         @default(now())
+  workspace           Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  reports             Report[]
+  ga4ReportCaches     Ga4ReportCache[]
 }
 
 model Report {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   clientId      String
   periodStart   DateTime
   periodEnd     DateTime
-  rawDataJson   Json
-  aiSummaryText String   @db.Text
-  createdAt     DateTime @default(now())
-  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  rawDataJson   String
+  aiSummaryText String
+  aiModel       String?
+  costCredits   Int?
+  useRealData   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  publicReport  PublicReport?
+  creditLedgers CreditLedger[]
+}
+
+model GoogleConnection {
+  id           String    @id @default(cuid())
+  workspaceId  String    @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model Ga4ReportCache {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  clientId      String
+  ga4PropertyId String
+  periodStart   DateTime
+  periodEnd     DateTime
+  payloadJson   String
+  createdAt     DateTime  @default(now())
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, clientId, ga4PropertyId, periodStart, periodEnd])
+}
+
+model PublicReport {
+  id        String    @id @default(cuid())
+  reportId  String    @unique
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model CreditLedger {
+  id          String    @id @default(cuid())
+  workspaceId String
+  reportId    String?
+  delta       Int
+  reason      String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  report      Report?   @relation(fields: [reportId], references: [id], onDelete: SetNull)
 }
 
 model WaitlistEmail {
@@ -71,12 +137,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
