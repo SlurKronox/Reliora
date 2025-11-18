@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { CreditBadge } from '@/components/credit-badge'
 import { signOut } from 'next-auth/react'
 import { LogOut } from 'lucide-react'
 
@@ -28,7 +29,9 @@ export function AppHeader({ user, workspace }: AppHeaderProps) {
       <div>
         <h2 className="text-lg font-semibold text-[#0F172A]">{workspace.name}</h2>
       </div>
-      <DropdownMenu>
+      <div className="flex items-center gap-4">
+        <CreditBadge />
+        <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#14B8A6]/10 text-[#14B8A6]">
@@ -53,6 +56,7 @@ export function AppHeader({ user, workspace }: AppHeaderProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   )
 }

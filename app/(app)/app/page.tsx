@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import { prisma } from '@/lib/db'
-import { Users, FileText, Plus, TrendingUp } from 'lucide-react'
+import { getCreditState } from '@/lib/actions/credits'
+import { Users, FileText, Plus, TrendingUp, AlertCircle, ShoppingCart } from 'lucide-react'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -18,19 +19,21 @@ export default async function DashboardPage() {
     return null
   }
 
-  const clientsCount = await prisma.client.count({
-    where: {
-      workspaceId: workspace.id,
-    },
-  })
-
-  const reportsCount = await prisma.report.count({
-    where: {
-      client: {
+  const [clientsCount, reportsCount, creditState] = await Promise.all([
+    prisma.client.count({
+      where: {
         workspaceId: workspace.id,
       },
-    },
-  })
+    }),
+    prisma.report.count({
+      where: {
+        client: {
+          workspaceId: workspace.id,
+        },
+      },
+    }),
+    getCreditState(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -42,6 +45,63 @@ export default async function DashboardPage() {
           Aqui está uma visão geral da sua conta
         </p>
       </div>
+
+      {creditState && creditState.isLowCredits && (
+        <div
+          className={`rounded-lg p-4 ${
+            creditState.remaining < 10
+              ? 'bg-red-50 border border-red-200'
+              : 'bg-orange-50 border border-orange-200'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle
+              className={`h-5 w-5 mt-0.5 ${
+                creditState.remaining < 10 ? 'text-red-600' : 'text-orange-600'
+              }`}
+            />
+            <div className="flex-1">
+              <h3
+                className={`font-semibold ${
+                  creditState.remaining < 10 ? 'text-red-900' : 'text-orange-900'
+                }`}
+              >
+                {creditState.remaining < 10 ? 'Créditos críticos!' : 'Créditos baixos'}
+              </h3>
+              <p
+                className={`mt-1 text-sm ${
+                  creditState.remaining < 10 ? 'text-red-800' : 'text-orange-800'
+                }`}
+              >
+                {creditState.remaining < 10
+                  ? `Você tem apenas ${creditState.remaining} créditos disponíveis. Compre mais créditos para continuar gerando relatórios.`
+                  : `Você usou ${creditState.percentageUsed.toFixed(
+                      0
+                    )}% dos seus créditos. Considere comprar mais para não interromper seu trabalho.`}
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Button
+                  asChild
+                  size="sm"
+                  className={
+                    creditState.remaining < 10
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-orange-600 hover:bg-orange-700'
+                  }
+                >
+                  <Link href="/app/billing">
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Comprar créditos
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/app/credits">Ver detalhes</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
