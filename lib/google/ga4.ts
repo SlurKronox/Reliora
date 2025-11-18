@@ -2,7 +2,11 @@
  * Google Analytics 4 Data API helpers
  */
 
+import { prisma } from '@/lib/db'
+import { refreshAccessToken } from './oauth'
+
 const GA4_API_BASE = 'https://analyticsdata.googleapis.com/v1beta'
+const GA4_ADMIN_API_BASE = 'https://analyticsadmin.googleapis.com/v1beta'
 
 export type Ga4ReportParams = {
   accessToken: string
@@ -89,12 +93,61 @@ export async function runGa4Report(params: Ga4ReportParams): Promise<Ga4Response
   return data as Ga4Response
 }
 
+export type GA4Property = {
+  propertyId: string
+  displayName: string
+  parent?: string
+}
+
 /**
- * List GA4 properties accessible to the user
- * Useful for property selection UI
+ * Get valid access token for a workspace, refreshing if needed
  */
-export async function listGa4Properties(accessToken: string): Promise<any[]> {
-  const url = 'https://analyticsadmin.googleapis.com/v1beta/accountSummaries'
+async function getValidAccessToken(workspaceId: string): Promise<string> {
+  const connection = await prisma.googleConnection.findUnique({
+    where: { workspaceId },
+    select: {
+      accessToken: true,
+      refreshToken: true,
+      expiresAt: true
+    }
+  })
+
+  if (!connection) {
+    throw new Error('Google connection not found for this workspace')
+  }
+
+  const now = new Date()
+  const expiresAt = new Date(connection.expiresAt)
+  const minutesUntilExpiry = (expiresAt.getTime() - now.getTime()) / (1000 * 60)
+
+  if (minutesUntilExpiry < 5) {
+    console.log(`[GA4] Token expires in ${minutesUntilExpiry.toFixed(1)} min, refreshing...`)
+
+    const tokens = await refreshAccessToken(connection.refreshToken)
+
+    const newExpiresAt = new Date()
+    newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in)
+
+    await prisma.googleConnection.update({
+      where: { workspaceId },
+      data: {
+        accessToken: tokens.access_token,
+        expiresAt: newExpiresAt
+      }
+    })
+
+    console.log(`[GA4] Token refreshed for workspace ${workspaceId}`)
+    return tokens.access_token
+  }
+
+  return connection.accessToken
+}
+
+/**
+ * List GA4 properties accessible to the user (by access token)
+ */
+export async function listGa4Properties(accessToken: string): Promise<GA4Property[]> {
+  const url = `${GA4_ADMIN_API_BASE}/accountSummaries`
 
   const response = await fetch(url, {
     method: 'GET',
@@ -112,16 +165,15 @@ export async function listGa4Properties(accessToken: string): Promise<any[]> {
 
   const data = await response.json()
 
-  // Extract properties from account summaries
-  const properties: any[] = []
+  const properties: GA4Property[] = []
 
   if (data.accountSummaries) {
     for (const account of data.accountSummaries) {
       if (account.propertySummaries) {
         for (const prop of account.propertySummaries) {
           properties.push({
-            propertyId: prop.property?.replace('properties/', ''),
-            displayName: prop.displayName,
+            propertyId: prop.property?.replace('properties/', '') || '',
+            displayName: prop.displayName || 'Unnamed Property',
             parent: prop.parent,
           })
         }
@@ -130,4 +182,12 @@ export async function listGa4Properties(accessToken: string): Promise<any[]> {
   }
 
   return properties
+}
+
+/**
+ * List GA4 properties for a workspace (with auto-refresh)
+ */
+export async function listGA4PropertiesForWorkspace(workspaceId: string): Promise<GA4Property[]> {
+  const accessToken = await getValidAccessToken(workspaceId)
+  return listGa4Properties(accessToken)
 }

@@ -1,21 +1,33 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/session'
-import { createClient } from '@/lib/db'
+import { prisma } from '@/lib/db'
+import { listGA4PropertiesForWorkspace, GA4Property } from '@/lib/google/ga4'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle2, XCircle, BarChart3 } from 'lucide-react'
+import { CheckCircle2, XCircle, BarChart3, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 async function getGoogleConnection(workspaceId: string) {
-  const prisma = createClient()
-
   const connection = await prisma.googleConnection.findUnique({
     where: { workspaceId },
     select: { id: true, createdAt: true, expiresAt: true }
   })
 
   return connection
+}
+
+async function getGA4Properties(workspaceId: string): Promise<{ properties: GA4Property[], error?: string }> {
+  try {
+    const properties = await listGA4PropertiesForWorkspace(workspaceId)
+    return { properties }
+  } catch (error) {
+    console.error('[Integrations] Failed to load GA4 properties:', error)
+    return {
+      properties: [],
+      error: error instanceof Error ? error.message : 'Erro ao carregar propriedades'
+    }
+  }
 }
 
 export default async function IntegrationsPage({
@@ -29,8 +41,6 @@ export default async function IntegrationsPage({
     redirect('/login')
   }
 
-  const prisma = createClient()
-
   const member = await prisma.workspaceMember.findFirst({
     where: { userId: session.user.id },
     select: { workspaceId: true }
@@ -41,6 +51,9 @@ export default async function IntegrationsPage({
   }
 
   const googleConnection = await getGoogleConnection(member.workspaceId)
+  const { properties: ga4Properties, error: propertiesError } = googleConnection
+    ? await getGA4Properties(member.workspaceId)
+    : { properties: [], error: undefined }
 
   return (
     <div className="container max-w-4xl py-8">
@@ -107,6 +120,46 @@ export default async function IntegrationsPage({
                     Conectado em {new Date(googleConnection.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
+
+                {propertiesError && (
+                  <Alert variant="destructive" className="text-sm">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Erro ao carregar propriedades: {propertiesError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {!propertiesError && ga4Properties.length > 0 && (
+                  <div className="rounded-lg border bg-gray-50 p-4">
+                    <h4 className="text-sm font-medium mb-3">Propriedades GA4 Disponíveis</h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {ga4Properties.map((prop) => (
+                        <div
+                          key={prop.propertyId}
+                          className="flex items-center gap-2 p-2 bg-white rounded border text-sm"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{prop.displayName}</p>
+                            <p className="text-xs text-gray-500">ID: {prop.propertyId}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-3">
+                      Você pode vincular estas propriedades aos seus clientes na página de cada cliente.
+                    </p>
+                  </div>
+                )}
+
+                {!propertiesError && ga4Properties.length === 0 && (
+                  <Alert className="text-sm">
+                    <AlertDescription>
+                      Nenhuma propriedade GA4 encontrada. Verifique se você tem acesso a propriedades no Google Analytics.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="flex gap-3">
                   <form action="/api/integrations/google/disconnect" method="POST" className="flex-1">

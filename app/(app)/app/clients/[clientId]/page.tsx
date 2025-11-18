@@ -8,6 +8,8 @@ import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { format } from 'date-fns'
 import { DeleteClientButton } from '@/components/clients/delete-client-button'
+import { GA4PropertySelector } from '@/components/clients/ga4-property-selector'
+import { listGA4PropertiesForWorkspace } from '@/lib/google/ga4'
 
 interface ClientDetailPageProps {
   params: {
@@ -44,6 +46,20 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
 
   if (!client) {
     notFound()
+  }
+
+  const googleConnection = await prisma.googleConnection.findUnique({
+    where: { workspaceId: workspace.id },
+    select: { id: true }
+  })
+
+  let ga4Properties: any[] = []
+  if (googleConnection) {
+    try {
+      ga4Properties = await listGA4PropertiesForWorkspace(workspace.id)
+    } catch (error) {
+      console.error('[Client] Failed to load GA4 properties:', error)
+    }
   }
 
   return (
@@ -88,6 +104,25 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               <p className="mt-1 text-gray-700">
                 {format(new Date(client.createdAt), "dd/MM/yyyy 'às' HH:mm")}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Google Analytics 4</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                Propriedade GA4 Vinculada
+              </label>
+              <GA4PropertySelector
+                clientId={client.id}
+                currentPropertyId={client.ga4PropertyId}
+                currentPropertyDisplay={client.ga4PropertyDisplay}
+                properties={ga4Properties}
+              />
             </div>
           </CardContent>
         </Card>

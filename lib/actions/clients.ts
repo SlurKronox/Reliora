@@ -156,3 +156,67 @@ export async function deleteClient(clientId: string) {
     }
   }
 }
+
+const updateGA4Schema = z.object({
+  ga4PropertyId: z.string().min(1, 'Property ID é obrigatório'),
+  ga4PropertyDisplay: z.string().min(1, 'Nome da propriedade é obrigatório'),
+})
+
+export async function updateClientGA4(
+  clientId: string,
+  ga4PropertyId: string,
+  ga4PropertyDisplay: string
+) {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Não autenticado')
+  }
+
+  const workspace = await getUserWorkspace(user.id)
+
+  if (!workspace) {
+    throw new Error('Workspace não encontrado')
+  }
+
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      id: clientId,
+      workspaceId: workspace.id,
+    },
+  })
+
+  if (!existingClient) {
+    throw new Error('Cliente não encontrado ou você não tem permissão')
+  }
+
+  const result = updateGA4Schema.safeParse({
+    ga4PropertyId,
+    ga4PropertyDisplay,
+  })
+
+  if (!result.success) {
+    return {
+      error: result.error.errors[0].message,
+    }
+  }
+
+  try {
+    await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        ga4PropertyId: result.data.ga4PropertyId,
+        ga4PropertyDisplay: result.data.ga4PropertyDisplay,
+      },
+    })
+
+    revalidatePath(`/app/clients/${clientId}`)
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating client GA4:', error)
+    return {
+      error: 'Erro ao vincular propriedade GA4. Tente novamente.',
+    }
+  }
+}
