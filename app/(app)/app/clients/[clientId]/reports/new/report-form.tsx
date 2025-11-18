@@ -30,15 +30,10 @@ export function ReportForm({ clientId }: { clientId: string }) {
     formData.append('clientId', clientId)
 
     try {
-      const result = await createReportAction(formData)
-
-      if (result?.error) {
-        toast.error(result.error)
-        setLoading(false)
-      }
-      // Success case redirects automatically
+      await createReportAction(formData)
     } catch (error) {
-      toast.error('Erro ao gerar relatório')
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao gerar relatório'
+      toast.error(errorMessage)
       setLoading(false)
     }
   }

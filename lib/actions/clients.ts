@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
+import { UnauthorizedError, NotFoundError, ValidationError } from '@/lib/errors'
 
 const createClientSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
@@ -15,13 +16,13 @@ export async function createClient(formData: FormData) {
   const user = await getCurrentUser()
 
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
 
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const data = {
@@ -32,9 +33,7 @@ export async function createClient(formData: FormData) {
   const result = createClientSchema.safeParse(data)
 
   if (!result.success) {
-    return {
-      error: result.error.errors[0].message,
-    }
+    throw new ValidationError(result.error.errors[0].message)
   }
 
   try {
@@ -60,13 +59,13 @@ export async function updateClient(clientId: string, formData: FormData) {
   const user = await getCurrentUser()
 
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
 
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const existingClient = await prisma.client.findFirst({
@@ -77,7 +76,7 @@ export async function updateClient(clientId: string, formData: FormData) {
   })
 
   if (!existingClient) {
-    throw new Error('Cliente não encontrado')
+    throw new NotFoundError('Cliente não encontrado')
   }
 
   const data = {
@@ -88,9 +87,7 @@ export async function updateClient(clientId: string, formData: FormData) {
   const result = createClientSchema.safeParse(data)
 
   if (!result.success) {
-    return {
-      error: result.error.errors[0].message,
-    }
+    throw new ValidationError(result.error.errors[0].message)
   }
 
   try {
@@ -120,13 +117,13 @@ export async function deleteClient(clientId: string) {
   const user = await getCurrentUser()
 
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
 
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const existingClient = await prisma.client.findFirst({
@@ -137,7 +134,7 @@ export async function deleteClient(clientId: string) {
   })
 
   if (!existingClient) {
-    throw new Error('Cliente não encontrado')
+    throw new NotFoundError('Cliente não encontrado')
   }
 
   try {
@@ -170,13 +167,13 @@ export async function updateClientGA4(
   const user = await getCurrentUser()
 
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
 
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const existingClient = await prisma.client.findFirst({
@@ -187,7 +184,7 @@ export async function updateClientGA4(
   })
 
   if (!existingClient) {
-    throw new Error('Cliente não encontrado ou você não tem permissão')
+    throw new NotFoundError('Cliente não encontrado')
   }
 
   const result = updateGA4Schema.safeParse({
@@ -196,9 +193,7 @@ export async function updateClientGA4(
   })
 
   if (!result.success) {
-    return {
-      error: result.error.errors[0].message,
-    }
+    throw new ValidationError(result.error.errors[0].message)
   }
 
   try {

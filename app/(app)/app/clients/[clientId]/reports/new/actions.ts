@@ -7,7 +7,8 @@ import { getCurrentUser } from '@/lib/session'
 import { getUserWorkspace } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { generateFakeMetrics } from '@/lib/fakeMetrics'
-import { generateMarketingSummary } from '@/lib/ai/summary'
+import { generateWithFallback } from '@/lib/ai/providers'
+import { UnauthorizedError, NotFoundError, ValidationError, InsufficientCreditsError } from '@/lib/errors'
 
 const reportSchema = z.object({
   clientId: z.string().min(1, 'Client ID obrigatório'),
@@ -19,13 +20,13 @@ export async function createReportAction(formData: FormData) {
   const user = await getCurrentUser()
 
   if (!user) {
-    redirect('/login')
+    throw new UnauthorizedError('Usuário não autenticado')
   }
 
   const workspace = await getUserWorkspace(user.id)
 
   if (!workspace) {
-    redirect('/login')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const result = reportSchema.safeParse({
@@ -35,9 +36,7 @@ export async function createReportAction(formData: FormData) {
   })
 
   if (!result.success) {
-    return {
-      error: result.error.errors[0].message,
-    }
+    throw new ValidationError(result.error.errors[0].message)
   }
 
   const { clientId, periodStart, periodEnd } = result.data
@@ -47,15 +46,11 @@ export async function createReportAction(formData: FormData) {
   const endDate = new Date(periodEnd)
 
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return {
-      error: 'Datas inválidas',
-    }
+    throw new ValidationError('Datas inválidas')
   }
 
   if (startDate > endDate) {
-    return {
-      error: 'Data inicial deve ser anterior à data final',
-    }
+    throw new ValidationError('Data inicial deve ser anterior à data final')
   }
 
   // Check if client belongs to workspace
@@ -67,47 +62,67 @@ export async function createReportAction(formData: FormData) {
   }) as any
 
   if (!client) {
-    return {
-      error: 'Cliente não encontrado',
-    }
+    throw new NotFoundError('Cliente não encontrado')
   }
 
   try {
-    // Generate fake metrics
     const metrics = generateFakeMetrics(startDate, endDate)
 
-    // Generate AI summary
-    const aiSummary = await generateMarketingSummary({
-      periodStart,
-      periodEnd,
-      totals: metrics.totals,
-      daily: metrics.daily,
-      outputFormat: 'texto',
-      tone: 'profissional',
-      maxWords: 200,
-      clientName: client.name,
-      segment: 'Marketing Digital',
-      objective: 'gerar leads e otimizar CAC',
-      channels: 'Meta Ads, Google Ads',
-    })
+    const estimatedCost = 5
+    const creditsAvailable = workspace.creditLimit - workspace.creditUsed
 
-    // Create report
+    if (creditsAvailable < estimatedCost) {
+      throw new InsufficientCreditsError(
+        'Créditos insuficientes para gerar relatório',
+        estimatedCost,
+        creditsAvailable
+      )
+    }
+
+    const { summary, provider, cost } = await generateWithFallback(
+      metrics,
+      startDate,
+      endDate
+    )
+
+    console.log(`[Report] Gerado com ${provider}, custo: ${cost} créditos`)
+
     const report = await prisma.report.create({
       data: {
         clientId,
         periodStart: startDate,
         periodEnd: endDate,
-        rawDataJson: metrics as any,
-        aiSummaryText: aiSummary,
+        rawDataJson: JSON.stringify(metrics),
+        aiSummaryText: summary,
+        aiModel: provider,
+        costCredits: cost,
+        useRealData: false
       },
-    }) as any
+    })
+
+    await prisma.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        creditUsed: {
+          increment: cost
+        }
+      }
+    })
+
+    await prisma.creditLedger.create({
+      data: {
+        workspaceId: workspace.id,
+        reportId: report.id,
+        delta: -cost,
+        reason: `Relatório gerado com ${provider}`
+      }
+    })
 
     revalidatePath(`/app/clients/${clientId}`)
+    revalidatePath('/app')
     redirect(`/app/reports/${report.id}`)
   } catch (error) {
-    console.error('Error creating report:', error)
-    return {
-      error: error instanceof Error ? error.message : 'Erro ao gerar relatório. Tente novamente.',
-    }
+    console.error('[Report] Error creating report:', error)
+    throw error
   }
 }

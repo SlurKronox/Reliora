@@ -36,6 +36,7 @@ model Workspace {
   googleConnections    GoogleConnection[]
   ga4ReportCaches      Ga4ReportCache[]
   creditLedgers        CreditLedger[]
+  paymentHistory       PaymentHistory[]
 }
 
 model WorkspaceMember {
@@ -123,6 +124,26 @@ model CreditLedger {
   createdAt   DateTime  @default(now())
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   report      Report?   @relation(fields: [reportId], references: [id], onDelete: SetNull)
+}
+
+model PaymentHistory {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  type              String
+  amount            Float
+  currency          String   @default("BRL")
+  status            String
+  externalId        String?
+  externalStatus    String?
+  plan              String?
+  creditsAdded      Int?
+  metadata          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([externalId])
 }
 
 model WaitlistEmail {

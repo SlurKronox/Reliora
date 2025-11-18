@@ -5,16 +5,17 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import crypto from 'crypto'
+import { UnauthorizedError, NotFoundError, ValidationError } from '@/lib/errors'
 
 export async function generatePublicLink(reportId: string) {
   const user = await getCurrentUser()
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const report = await prisma.report.findFirst({
@@ -27,7 +28,7 @@ export async function generatePublicLink(reportId: string) {
   })
 
   if (!report) {
-    throw new Error('Relatório não encontrado ou você não tem permissão')
+    throw new NotFoundError('Relatório não encontrado')
   }
 
   const existingPublicReport = await prisma.publicReport.findUnique({
@@ -64,12 +65,12 @@ export async function generatePublicLink(reportId: string) {
 export async function revokePublicLink(reportId: string) {
   const user = await getCurrentUser()
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const report = await prisma.report.findFirst({
@@ -82,7 +83,7 @@ export async function revokePublicLink(reportId: string) {
   })
 
   if (!report) {
-    throw new Error('Relatório não encontrado ou você não tem permissão')
+    throw new NotFoundError('Relatório não encontrado')
   }
 
   const publicReport = await prisma.publicReport.findUnique({
@@ -151,17 +152,17 @@ const deleteReportSchema = z.object({
 export async function deleteReport(reportId: string) {
   const user = await getCurrentUser()
   if (!user) {
-    throw new Error('Não autenticado')
+    throw new UnauthorizedError()
   }
 
   const workspace = await getUserWorkspace(user.id)
   if (!workspace) {
-    throw new Error('Workspace não encontrado')
+    throw new NotFoundError('Workspace não encontrado')
   }
 
   const result = deleteReportSchema.safeParse({ reportId })
   if (!result.success) {
-    return { error: result.error.errors[0].message }
+    throw new ValidationError(result.error.errors[0].message)
   }
 
   const report = await prisma.report.findFirst({
@@ -177,7 +178,7 @@ export async function deleteReport(reportId: string) {
   })
 
   if (!report) {
-    return { error: 'Relatório não encontrado ou você não tem permissão' }
+    throw new NotFoundError('Relatório não encontrado')
   }
 
   try {
