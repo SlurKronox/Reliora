@@ -1,9 +1,40 @@
-For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
+Project context – Reliora
+Reliora é um SaaS B2B que gera relatórios de marketing automaticamente usando dados do Google Analytics 4 + IA (OpenAI / Anthropic / Google). O app é multi-tenant (workspaces, clients, reports, credits, billing) e atende freelancers e pequenas agências de marketing. Todo código novo deve respeitar essa arquitetura.
 
-When using client-side hooks (useState and useEffect) in a component that's being treated as a Server Component by Next.js, always add the "use client" directive at the top of the file.
+Tech stack e bibliotecas
+– Usar Next.js App Router com TypeScript.
+– Usar Supabase (Postgres) como camada de banco de dados. Reaproveitar o schema existente e não adicionar outros bancos.
+– Usar NextAuth/Auth.js para autenticação (credentials provider) mantendo o modelo de sessão atual.
+– Usar Tailwind CSS + shadcn/ui para todos os componentes de UI. Não instalar outros UI kits, frameworks de CSS ou bibliotecas de ícone sem eu pedir explicitamente.
+– Usar ícones do lucide-react sempre que precisar de ícones ou marca simples.
 
-Do not write code that will trigger this error: "Warning: Extra attributes from the server: %s%s""class,style"
+Design e UX
+– Todas as telas devem ser limpas, modernas e com cara de produção, não genéricas ou “template pronto”.
+– Seguir a paleta de cores, espaçamento e tipografia já usados no projeto.
+– Layouts sempre responsivos (desktop e mobile).
+– Preferir UX simples e direta, com bons empty states, loading states e mensagens de erro.
+– Texto na UI em português brasileiro; comentários e nomes de variáveis/funções em inglês.
 
-By default, this template supports JSX syntax with Tailwind CSS classes, the shadcn/ui library, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
+Server/Client components
+– Preferir Server Components sempre que possível para páginas e data fetching.
+– Sempre que usar hooks client-side (useState, useEffect, useTransition etc.), colocar "use client" no topo do arquivo.
+– Evitar padrões que gerem o erro de hidratação “Warning: Extra attributes from the server: class, style”.
 
-Use icons from lucide-react for logos.
+Arquitetura e regras de dados
+– Respeitar o modelo multi-tenant: toda query e mutation deve ser filtrada por workspaceId e verificada no servidor.
+– Assumir que Row Level Security (RLS) está ativo; nunca burlar o isolamento por workspace.
+– Usar os helpers existentes (auth/session, credits, AI, GA4, billing) sempre que possível, em vez de duplicar lógica.
+– Não criar “mock APIs” falsas para fluxos centrais; se a integração real ainda não existir, seguir os padrões de fake/placeholder já definidos no código.
+
+Qualidade de código
+– Escrever TypeScript fortemente tipado, limpo e legível.
+– Evitar dependências desnecessárias; só adicionar pacotes novos se forem claramente necessários e alinhados com o stack.
+– Remover imports não usados e console.log desnecessário; manter apenas logs importantes.
+– Tratar erros de forma elegante e mostrar mensagens amigáveis ao usuário; nunca expor stack trace cru na UI.
+
+Objetivo
+Sempre otimizar para:
+
+1. Manter a arquitetura atual intacta (sem breaking changes).
+2. Entregar features que aproximem o Reliora de um MVP vendável (GA4 + IA + créditos + billing + boa UX).
+3. Escrever código que outro dev sênior conseguiria manter facilmente em um projeto real de produção.
