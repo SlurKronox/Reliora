@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { generateReportPDF } from '@/lib/pdf/generator'
+import { checkPdfPermission } from '@/lib/plan-limits'
 
 export async function GET(
   request: NextRequest,
@@ -51,6 +52,13 @@ export async function GET(
         { error: 'Relatório não encontrado ou você não tem permissão' },
         { status: 404 }
       )
+    }
+
+    try {
+      await checkPdfPermission(member.workspaceId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sem permissão para exportar PDF'
+      return NextResponse.json({ error: message }, { status: 403 })
     }
 
     const pdfBuffer = await generateReportPDF({

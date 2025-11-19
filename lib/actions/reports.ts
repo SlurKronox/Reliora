@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { getCurrentUser, getUserWorkspace } from '@/lib/session'
 import crypto from 'crypto'
 import { UnauthorizedError, NotFoundError, ValidationError } from '@/lib/errors'
+import { checkPublicLinkPermission } from '@/lib/plan-limits'
 
 export async function generatePublicLink(reportId: string) {
   const user = await getCurrentUser()
@@ -30,6 +31,8 @@ export async function generatePublicLink(reportId: string) {
   if (!report) {
     throw new NotFoundError('Relatório não encontrado')
   }
+
+  await checkPublicLinkPermission(workspace.id)
 
   const existingPublicReport = await prisma.publicReport.findUnique({
     where: { reportId }

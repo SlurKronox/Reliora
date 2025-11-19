@@ -8,7 +8,7 @@ import { UnauthorizedError, ValidationError, NotFoundError } from '@/lib/errors'
 import { handleActionError } from '@/lib/error-handler'
 
 const upgradePlanSchema = z.object({
-  plan: z.enum(['pro', 'business'])
+  plan: z.enum(['starter', 'pro', 'agency'])
 })
 
 const buyCreditsSchema = z.object({

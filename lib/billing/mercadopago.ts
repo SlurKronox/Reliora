@@ -3,33 +3,58 @@ import crypto from 'crypto'
 const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN
 const MP_WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET
 
-export type PlanType = 'free' | 'pro' | 'business'
+export type PlanType = 'free' | 'starter' | 'pro' | 'agency'
 
 export const PLANS = {
   free: {
     name: 'Free',
     credits: 1000,
     price: 0,
-    description: '1.000 créditos/mês'
+    description: 'Teste Reliora',
+    maxClients: 3,
+    maxUsers: 1,
+    allowPdf: false,
+    allowPublicLink: false,
+    hasWatermark: true
+  },
+  starter: {
+    name: 'Starter',
+    credits: 5000,
+    price: 47,
+    description: 'Para quem está começando',
+    maxClients: 10,
+    maxUsers: 1,
+    allowPdf: false,
+    allowPublicLink: false,
+    hasWatermark: false
   },
   pro: {
     name: 'Pro',
-    credits: 5000,
-    price: 97,
-    description: '5.000 créditos/mês'
-  },
-  business: {
-    name: 'Business',
     credits: 20000,
-    price: 297,
-    description: '20.000 créditos/mês'
+    price: 97,
+    description: 'Plano recomendado',
+    maxClients: -1,
+    maxUsers: 2,
+    allowPdf: true,
+    allowPublicLink: true,
+    hasWatermark: false
+  },
+  agency: {
+    name: 'Agency',
+    credits: 50000,
+    price: 197,
+    description: 'Para agências que vivem de relatório',
+    maxClients: -1,
+    maxUsers: 5,
+    allowPdf: true,
+    allowPublicLink: true,
+    hasWatermark: false
   }
 } as const
 
 export const CREDIT_PACKAGES = [
-  { credits: 1000, price: 29 },
-  { credits: 3000, price: 79 },
-  { credits: 10000, price: 249 }
+  { credits: 10000, price: 37 },
+  { credits: 50000, price: 147 }
 ] as const
 
 export type PreferenceData = {
