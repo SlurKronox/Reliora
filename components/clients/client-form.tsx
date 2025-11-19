@@ -20,14 +20,10 @@ export function ClientForm() {
     const formData = new FormData(e.currentTarget)
 
     try {
-      const result = await createClient(formData)
-
-      if (result?.error) {
-        toast.error(result.error)
-        setLoading(false)
-      }
+      await createClient(formData)
     } catch (error) {
-      toast.error('Erro ao criar cliente')
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar cliente'
+      toast.error(errorMessage)
       setLoading(false)
     }
   }

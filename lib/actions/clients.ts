@@ -39,23 +39,27 @@ export async function createClient(formData: FormData) {
 
   await checkClientRateLimit(workspace.id)
 
-  try {
-    const client = await prisma.client.create({
-      data: {
-        name: result.data.name,
-        notes: result.data.notes || null,
-        workspaceId: workspace.id,
-      },
-    }) as any
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      name: result.data.name,
+      workspaceId: workspace.id,
+    },
+  })
 
-    revalidatePath('/app/clients')
-    redirect(`/app/clients/${client.id}`)
-  } catch (error) {
-    console.error('Error creating client:', error)
-    return {
-      error: 'Erro ao criar cliente. Tente novamente.',
-    }
+  if (existingClient) {
+    throw new ValidationError('Já existe um cliente com este nome')
   }
+
+  const client = await prisma.client.create({
+    data: {
+      name: result.data.name,
+      notes: result.data.notes || null,
+      workspaceId: workspace.id,
+    },
+  }) as any
+
+  revalidatePath('/app/clients')
+  redirect(`/app/clients/${client.id}`)
 }
 
 export async function updateClient(clientId: string, formData: FormData) {
