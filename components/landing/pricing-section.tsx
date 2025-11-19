@@ -6,39 +6,62 @@ import Link from 'next/link'
 export function PricingSection() {
   const plans = [
     {
-      name: 'Starter',
-      price: 'R$ 79',
+      name: 'Free',
+      price: 'R$ 0',
       period: '/mês',
       features: [
-        'Até 5 clientes/projetos',
-        'Relatórios mensais ilimitados',
-        'Exportação em PDF',
-        'Suporte por e-mail',
+        'Até 3 clientes',
+        '1.000 créditos/mês',
+        'Relatórios com marca d\'água',
+        'Sem PDF ou link público',
+      ],
+      isFree: true,
+    },
+    {
+      name: 'Starter',
+      price: 'R$ 47',
+      period: '/mês',
+      features: [
+        'Até 10 clientes',
+        '5.000 créditos/mês',
+        'Sem marca d\'água',
+        '1 usuário',
       ],
     },
     {
       name: 'Pro',
-      price: 'R$ 199',
+      price: 'R$ 97',
       period: '/mês',
       features: [
-        'Até 20 clientes/projetos',
-        'Relatórios mensais e semanais',
-        'Branding personalizado nos relatórios',
-        'Prioridade em novas features',
+        'Clientes ilimitados',
+        '20.000 créditos/mês',
+        'PDF e link público',
+         'Até 2 usuários',
       ],
       featured: true,
+    },
+    {
+      name: 'Agency',
+      price: 'R$ 197',
+      period: '/mês',
+      features: [
+        'Clientes ilimitados',
+        '50.000 créditos/mês',
+        'Até 5 usuários',
+        'Suporte prioritário',
+      ],
     },
   ]
 
   return (
-    <section className="py-20 sm:py-32">
+    <section id="pricing" className="py-20 sm:py-32">
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
             Planos simples para começar rápido
           </h2>
         </div>
-        <div className="mx-auto mt-16 grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2">
+        <div className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan, index) => (
             <Card
               key={index}
@@ -78,10 +101,12 @@ export function PricingSection() {
                   className={`w-full mt-6 ${
                     plan.featured
                       ? 'bg-[#14B8A6] hover:bg-[#14B8A6]/90'
+                      : plan.isFree
+                      ? 'bg-gray-700 hover:bg-gray-800'
                       : 'bg-[#0F172A] hover:bg-[#0F172A]/90'
                   }`}
                 >
-                  <Link href="/signup">Começar teste gratuito</Link>
+                  <Link href="/signup">{plan.isFree ? 'Começar grátis' : 'Começar agora'}</Link>
                 </Button>
               </CardContent>
             </Card>

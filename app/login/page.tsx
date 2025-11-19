@@ -211,8 +211,12 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-xs text-gray-500">
             Ao entrar, você concorda com nossos{' '}
-            <Link href="#" className="text-[#14B8A6] hover:underline">
-              Termos de Uso
+            <Link href="/terms-of-service" className="text-[#14B8A6] hover:underline">
+              Termos de Serviço
+            </Link>
+            {' '}e{' '}
+            <Link href="/privacy-policy" className="text-[#14B8A6] hover:underline">
+              Política de Privacidade
             </Link>
           </p>
         </div>

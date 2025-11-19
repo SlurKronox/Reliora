@@ -306,11 +306,11 @@ export default function SignupPage() {
               <div className="mt-6 pt-6 border-t">
                 <p className="text-xs text-center text-gray-500">
                   Ao criar uma conta, você concorda com nossos{' '}
-                  <Link href="#" className="text-[#14B8A6] hover:underline">
-                    Termos de Uso
+                  <Link href="/terms-of-service" className="text-[#14B8A6] hover:underline">
+                    Termos de Serviço
                   </Link>{' '}
                   e{' '}
-                  <Link href="#" className="text-[#14B8A6] hover:underline">
+                  <Link href="/privacy-policy" className="text-[#14B8A6] hover:underline">
                     Política de Privacidade
                   </Link>
                 </p>

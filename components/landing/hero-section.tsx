@@ -8,24 +8,24 @@ export function HeroSection() {
       <div className="container">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-[#0F172A] sm:text-6xl">
-            Relatórios de marketing em minutos, não em horas.
+            Relatórios de marketing automatizados com IA
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600 sm:text-xl">
-            Reliora conecta suas contas de marketing e gera relatórios claros, com gráficos e análise em texto feita por IA. Você para de perder tempo em planilhas e volta a focar em campanhas que performam.
+            Conecte seu Google Analytics 4, gere relatórios completos com análise de IA em minutos. Economize horas todo mês e entregue insights profissionais para seus clientes.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild className="bg-[#14B8A6] hover:bg-[#14B8A6]/90">
               <Link href="/signup">
-                Começar meu teste gratuito
+                Começar agora grátis
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="#exemplo">Ver exemplo de relatório</Link>
+              <Link href="#pricing">Ver planos</Link>
             </Button>
           </div>
           <p className="mt-8 text-sm text-gray-500">
-            Pensado para agências, freelancers e times de marketing que já cansaram de fechar mês montando relatório no braço.
+            Perfeito para agências, freelancers e profissionais de marketing. Sem cartão de crédito necessário.
           </p>
         </div>
       </div>

@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -69,8 +69,8 @@ model Report {
   clientId      String
   periodStart   DateTime
   periodEnd     DateTime
-  rawDataJson   String
-  aiSummaryText String
+  rawDataJson   String         @db.Text
+  aiSummaryText String         @db.Text
   aiModel       String?
   costCredits   Int?
   useRealData   Boolean        @default(false)
@@ -83,8 +83,8 @@ model Report {
 model GoogleConnection {
   id           String    @id @default(cuid())
   workspaceId  String    @unique
-  accessToken  String
-  refreshToken String
+  accessToken  String    @db.Text
+  refreshToken String    @db.Text
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -98,7 +98,7 @@ model Ga4ReportCache {
   ga4PropertyId String
   periodStart   DateTime
   periodEnd     DateTime
-  payloadJson   String
+  payloadJson   String    @db.Text
   createdAt     DateTime  @default(now())
   workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -158,12 +158,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
